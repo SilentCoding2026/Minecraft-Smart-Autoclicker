@@ -1,11 +1,11 @@
-package com.example;
+package com.ra;
 
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExampleMod implements ModInitializer {
+public class SmartClicksMod implements ModInitializer {
 	public static final String MOD_ID = "modid";
 
 	// This logger is used to write text to the console and the log file.

@@ -2,24 +2,24 @@
 	"schemaVersion": 1,
 	"id": "modid",
 	"version": "${version}",
-	"name": "Example Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Smart Clicks",
+	"description": "This is an expert experimental Smart python+java powered auto clicker, Built for *BedWars*!",
 	"authors": [
-		"Me!"
+		"Mr Rahnama!"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/SilentCoding2026/Minecraft-Smart-Autoclicker"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/modid/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
+			"com.ra.SmartClicksMod"
 		],
 		"client": [
-			"com.example.client.ExampleModClient"
+			"com.ra.client.SmartClicksModClient"
 		]
 	},
 	"mixins": [
