@@ -9,7 +9,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class ExampleModClient implements ClientModInitializer {
+public class SmartClicksModClient implements ClientModInitializer {
     private static boolean wasLooking = false;
 
     @Override
