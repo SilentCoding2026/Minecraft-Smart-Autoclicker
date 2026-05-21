@@ -3,7 +3,7 @@
 	"package": "com.ra.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"SmartClicksMixin"
+		"smartclicksMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
