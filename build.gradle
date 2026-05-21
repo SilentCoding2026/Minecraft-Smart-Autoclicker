@@ -18,7 +18,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"modid" {
+		"SmartClicks" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}

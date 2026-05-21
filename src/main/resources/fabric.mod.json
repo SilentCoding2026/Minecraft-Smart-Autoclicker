@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "SmartClicks",
 	"version": "${version}",
 	"name": "Smart Clicks",
 	"description": "This is an expert experimental Smart python+java powered auto clicker, Built for *BedWars*!",
@@ -12,7 +12,7 @@
 		"sources": "https://github.com/SilentCoding2026/Minecraft-Smart-Autoclicker"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"icon": "assets/SmartClicks/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
@@ -23,9 +23,9 @@
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+		"SmartClicks.mixins.json",
 		{
-			"config": "modid.client.mixins.json",
+			"config": "SmartClicks.client.mixins.json",
 			"environment": "client"
 		}
 	],
