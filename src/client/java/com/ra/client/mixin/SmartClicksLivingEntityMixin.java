@@ -23,8 +23,8 @@ public class SmartClicksLivingEntityMixin {
         SmartClicksTelemetry.INSTANCE.recordDeath((LivingEntity) (Object) this, source);
     }
 
-    @Inject(method = "hurt", at = @At("HEAD"), remap = false)
-    private void smartclicks$onHurtHead(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    private void smartclicks$onHurtHead(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         SmartClicksTelemetry.INSTANCE.recordHurtStart((LivingEntity) (Object) this, source, amount);
     }
 
