@@ -14,15 +14,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class SmartClicksLivingEntityMixin {
 
     @Inject(
-            method = "swing(Lnet/minecraft/world/InteractionHand;)V",
+            method = "swing",
             at = @At("HEAD")
     )
-    private void smartclicks$onSwing(InteractionHand hand, CallbackInfo ci) {
-        SmartClicksTelemetry.INSTANCE.recordSwing((LivingEntity) (Object) this);
+    private void smartclicks$onSwing(
+            InteractionHand hand,
+            CallbackInfo ci
+    ) {
+        SmartClicksTelemetry.INSTANCE.recordSwing(
+                (LivingEntity) (Object) this
+        );
     }
 
     @Inject(
-            method = "hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            method = "hurt",
             at = @At("HEAD")
     )
     private void smartclicks$onHurtHead(
@@ -38,7 +43,7 @@ public class SmartClicksLivingEntityMixin {
     }
 
     @Inject(
-            method = "hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            method = "hurt",
             at = @At("RETURN")
     )
     private void smartclicks$onHurtReturn(
@@ -55,10 +60,13 @@ public class SmartClicksLivingEntityMixin {
     }
 
     @Inject(
-            method = "die(Lnet/minecraft/world/damagesource/DamageSource;)V",
+            method = "die",
             at = @At("HEAD")
     )
-    private void smartclicks$onDie(DamageSource source, CallbackInfo ci) {
+    private void smartclicks$onDie(
+            DamageSource source,
+            CallbackInfo ci
+    ) {
         SmartClicksTelemetry.INSTANCE.recordDeath(
                 (LivingEntity) (Object) this,
                 source
