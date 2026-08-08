@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SmartClicksTelemetry {
 
     public static final SmartClicksTelemetry INSTANCE = new SmartClicksTelemetry();
+    private static final DateTimeFormatter SESSION_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
     private static final class PreHurt {
         final float health;
@@ -89,10 +90,7 @@ public class SmartClicksTelemetry {
     }
 
     public synchronized void newSession(String reason) {
-        sessionId = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))
-                + "_"
-                + UUID.randomUUID().toString().substring(0, 8);
+        sessionId = LocalDateTime.now().format(SESSION_FORMATTER) + "_" + UUID.randomUUID().toString().substring(0, 8);
 
         startNano = System.nanoTime();
         seq.set(0);
@@ -200,7 +198,7 @@ public class SmartClicksTelemetry {
             data.addProperty("sprinting", mc.player.isSprinting());
 
             try {
-                data.addProperty("onGround", mc.player.onGround);
+                data.addProperty("onGround", mc.player.onGround());
             } catch (Throwable ignored) {
             }
         }
@@ -240,6 +238,9 @@ public class SmartClicksTelemetry {
     }
 
     public void recordAttackStart(Minecraft mc, Entity target) {
+        if (lastSwingAt.size() > 500) {
+            lastSwingAt.clear(); // Or implement a proper LRU cache if you want to be fancy
+        }
         JsonObject data = baseCombatData(mc, target);
         data.addProperty("stage", "start");
         log("attack_attempt", data);
@@ -267,6 +268,9 @@ public class SmartClicksTelemetry {
     }
 
     public void recordSwing(LivingEntity entity) {
+        if (lastSwingAt.size() > 500) {
+            lastSwingAt.clear(); // Or implement a proper LRU cache if you want to be fancy
+        }
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || entity == null) return;
 
