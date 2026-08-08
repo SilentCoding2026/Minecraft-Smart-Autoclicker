@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public class SmartClicksLivingEntityMixin {
@@ -22,39 +21,6 @@ public class SmartClicksLivingEntityMixin {
     ) {
         SmartClicksTelemetry.INSTANCE.recordSwing(
                 (LivingEntity) (Object) this
-        );
-    }
-
-    // تغییر از "hurt" به "hurtClient" برای سازگاری با نسخه 1.21.2 به بالا
-    // در نسخه‌های جدید کلاینت دیگر مقدار float damage را دریافت نمی‌کند، بنابراین 0.0f ارسال می‌شود
-    @Inject(
-            method = "hurtClient",
-            at = @At("HEAD")
-    )
-    private void smartclicks$onHurtHead(
-            DamageSource source,
-            CallbackInfoReturnable<Boolean> cir
-    ) {
-        SmartClicksTelemetry.INSTANCE.recordHurtStart(
-                (LivingEntity) (Object) this,
-                source,
-                0.0f
-        );
-    }
-
-    @Inject(
-            method = "hurtClient",
-            at = @At("RETURN")
-    )
-    private void smartclicks$onHurtReturn(
-            DamageSource source,
-            CallbackInfoReturnable<Boolean> cir
-    ) {
-        SmartClicksTelemetry.INSTANCE.recordHurtReturn(
-                (LivingEntity) (Object) this,
-                source,
-                0.0f,
-                cir.getReturnValue()
         );
     }
 

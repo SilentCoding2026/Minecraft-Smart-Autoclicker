@@ -3,6 +3,9 @@
   "package": "com.ra.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "SmartClicksClientMixin",
+    "SmartClicksEntityMixin",
+    "SmartClicksGameModeMixin",
     "SmartClicksLivingEntityMixin"
   ],
   "injectors": {
