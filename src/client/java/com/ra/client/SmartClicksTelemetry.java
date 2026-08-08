@@ -95,14 +95,21 @@ public class SmartClicksTelemetry {
         startNano = System.nanoTime();
         seq.set(0);
 
-        lastAttackAt.clear();
-        lastDamageAt.clear();
-        preHurt.clear();
-        lastSwingAt.clear();
+        cleanupMaps();
 
         JsonObject data = new JsonObject();
         data.addProperty("reason", reason);
         log("session_start", data);
+    }
+
+    /**
+     * Prevents memory bloat during extremely long sessions without deaths.
+     */
+    private void cleanupMaps() {
+        if (lastAttackAt.size() > 500) lastAttackAt.clear();
+        if (lastDamageAt.size() > 500) lastDamageAt.clear();
+        if (lastSwingAt.size() > 500) lastSwingAt.clear();
+        if (preHurt.size() > 500) preHurt.clear();
     }
 
     public void setEnabled(boolean value) {
@@ -238,9 +245,7 @@ public class SmartClicksTelemetry {
     }
 
     public void recordAttackStart(Minecraft mc, Entity target) {
-        if (lastSwingAt.size() > 500) {
-            lastSwingAt.clear(); // Or implement a proper LRU cache if you want to be fancy
-        }
+        cleanupMaps();
         JsonObject data = baseCombatData(mc, target);
         data.addProperty("stage", "start");
         log("attack_attempt", data);
@@ -268,9 +273,7 @@ public class SmartClicksTelemetry {
     }
 
     public void recordSwing(LivingEntity entity) {
-        if (lastSwingAt.size() > 500) {
-            lastSwingAt.clear(); // Or implement a proper LRU cache if you want to be fancy
-        }
+        cleanupMaps();
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || entity == null) return;
 
