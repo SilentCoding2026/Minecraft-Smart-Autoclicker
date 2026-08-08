@@ -8,33 +8,28 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public class SmartClicksLivingEntityMixin {
-    @Inject(
-            method = "swing",
-            at = @At("HEAD")
-    )
-    private void smartclicks$onSwing(
-            InteractionHand hand,
-            CallbackInfo ci
-    ) {
-        SmartClicksTelemetry.INSTANCE.recordSwing(
-                (LivingEntity) (Object) this
-        );
+
+    @Inject(method = "swing", at = @At("HEAD"), remap = false)
+    private void smartclicks$onSwing(InteractionHand hand, CallbackInfo ci) {
+        SmartClicksTelemetry.INSTANCE.recordSwing((LivingEntity) (Object) this);
     }
 
-    @Inject(
-            method = "die",
-            at = @At("HEAD")
-    )
-    private void smartclicks$onDie(
-            DamageSource source,
-            CallbackInfo ci
-    ) {
-        SmartClicksTelemetry.INSTANCE.recordDeath(
-                (LivingEntity) (Object) this,
-                source
-        );
+    @Inject(method = "die", at = @At("HEAD"), remap = false)
+    private void smartclicks$onDie(DamageSource source, CallbackInfo ci) {
+        SmartClicksTelemetry.INSTANCE.recordDeath((LivingEntity) (Object) this, source);
+    }
+
+    @Inject(method = "hurt", at = @At("HEAD"), remap = false)
+    private void smartclicks$onHurtHead(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        SmartClicksTelemetry.INSTANCE.recordHurtStart((LivingEntity) (Object) this, source, amount);
+    }
+
+    @Inject(method = "hurt", at = @At("RETURN"), remap = false)
+    private void smartclicks$onHurtReturn(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        SmartClicksTelemetry.INSTANCE.recordHurtReturn((LivingEntity) (Object) this, source, amount, cir.getReturnValue());
     }
 }

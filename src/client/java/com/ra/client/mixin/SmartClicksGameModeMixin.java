@@ -12,16 +12,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MultiPlayerGameMode.class)
 public class SmartClicksGameModeMixin {
-
     @Inject(
-            method = "attack(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/entity/Entity;)V",
-            at = @At("HEAD")
+            method = "attack",
+            at = @At("HEAD"),
+            remap = false
     )
     private void smartclicks$onAttack(Player player, Entity target, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
-
         if (mc.player == null || player == null) return;
-
         if (player == mc.player) {
             SmartClicksTelemetry.INSTANCE.recordAttackPacket(mc, target);
         }
