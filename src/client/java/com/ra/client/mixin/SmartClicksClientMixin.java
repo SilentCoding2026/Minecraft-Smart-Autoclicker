@@ -28,35 +28,28 @@ public class SmartClicksClientMixin {
         return t;
     });
 
-    // --- State tracking ---
     private static boolean wasLooking = false;
     private static int lastTargetId = -1;
     private static long lastStateSent = 0L;
-    private static String lastItem = "";
-    private static boolean lastGui = false;
-    private static boolean lastSprint = false;
-    private static boolean lastGround = false;
-    private static boolean lastDead = false;
 
     // ============================================================
-    //  MAIN TICK – Target lock detection + periodic state sending
+    //  TARGET DETECTION - every tick
     // ============================================================
-    @Inject(at = @At("HEAD"), method = "tick", remap = false)
+    @Inject(at = @At("HEAD"), method = "tick")
     private void smartclicks$tick(CallbackInfo ci) {
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.player == null || mc.level == null) return;
 
-        // --- Target detection ---
         HitResult hit = mc.hitResult;
         Entity target = null;
-        boolean isLookingAtValidEnemy = false;
+        boolean isLookingAtEnemy = false;
 
         if (hit != null && hit.getType() == HitResult.Type.ENTITY) {
             Entity entity = ((EntityHitResult) hit).getEntity();
             if (entity instanceof Player && entity != mc.player) {
                 LivingEntity living = (LivingEntity) entity;
-                if (living.isAlive() && !living.isInvisibleTo(mc.player)) {
-                    isLookingAtValidEnemy = true;
+                if (living.isAlive()) {
+                    isLookingAtEnemy = true;
                     target = entity;
                 }
             }
@@ -64,34 +57,32 @@ public class SmartClicksClientMixin {
 
         int targetId = target == null ? -1 : target.getId();
 
-        // --- Target lock state changes ---
-        if (isLookingAtValidEnemy != wasLooking) {
-            if (isLookingAtValidEnemy) {
+        if (isLookingAtEnemy != wasLooking) {
+            if (isLookingAtEnemy) {
                 send("http://127.0.0.1:4321/target_locked");
             } else {
                 send("http://127.0.0.1:4321/target_unlocked");
             }
-        } else if (isLookingAtValidEnemy && targetId != lastTargetId) {
-            // Switched targets
+        } else if (isLookingAtEnemy && targetId != lastTargetId) {
             send("http://127.0.0.1:4321/target_unlocked");
             send("http://127.0.0.1:4321/target_locked");
         }
 
-        wasLooking = isLookingAtValidEnemy;
+        wasLooking = isLookingAtEnemy;
         lastTargetId = targetId;
 
-        // --- Periodic state update (every 250ms) ---
+        // Send state every 300ms
         long now = System.currentTimeMillis();
-        if (now - lastStateSent >= 250L) {
+        if (now - lastStateSent >= 300L) {
             lastStateSent = now;
             sendState(mc, target);
         }
     }
 
     // ============================================================
-    //  ATTACK DETECTION – Send /event?name=hit with distance
+    //  HIT DETECTION
     // ============================================================
-    @Inject(method = "startAttack", at = @At("RETURN"), remap = false)
+    @Inject(method = "startAttack", at = @At("RETURN"))
     private void smartclicks$onAttack(CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
 
@@ -108,7 +99,7 @@ public class SmartClicksClientMixin {
     }
 
     // ============================================================
-    //  STATE SENDER – Sends full context to Python
+    //  STATE SENDER
     // ============================================================
     private void sendState(Minecraft mc, Entity target) {
         boolean gui = mc.screen != null;
@@ -117,26 +108,10 @@ public class SmartClicksClientMixin {
         boolean ground = mc.player.onGround();
         String item = getItemName(mc.player.getMainHandItem());
         float distance = target != null ? mc.player.distanceTo(target) : 0f;
-        float cooldown = mc.player.getAttackStrengthScale(0.5F);
-
-        // Only send if something changed or every 1 second
-        boolean changed = gui != lastGui || dead != lastDead ||
-                sprint != lastSprint || ground != lastGround ||
-                !item.equals(lastItem);
-
-        if (!changed && System.currentTimeMillis() - lastStateSent < 1000L) {
-            return;
-        }
-
-        lastGui = gui;
-        lastDead = dead;
-        lastSprint = sprint;
-        lastGround = ground;
-        lastItem = item;
 
         send(String.format(Locale.ROOT,
-                "http://127.0.0.1:4321/state?gui=%b&dead=%b&item=%s&sprinting=%b&ground=%b&distance=%.2f&cooldown=%.2f",
-                gui, dead, item, sprint, ground, distance, cooldown));
+                "http://127.0.0.1:4321/state?gui=%b&dead=%b&item=%s&sprinting=%b&ground=%b&distance=%.2f",
+                gui, dead, item, sprint, ground, distance));
     }
 
     private String getItemName(ItemStack stack) {
@@ -154,7 +129,6 @@ public class SmartClicksClientMixin {
         if (item instanceof SnowballItem) return "snowball";
         if (item instanceof EnderpearlItem) return "ender_pearl";
         if (item instanceof EggItem) return "egg";
-        if (item instanceof FoodItem) return "food";
         if (item instanceof ShieldItem) return "shield";
         return "other";
     }

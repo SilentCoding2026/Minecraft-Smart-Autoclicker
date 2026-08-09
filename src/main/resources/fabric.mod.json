@@ -1,37 +1,31 @@
 {
-	"schemaVersion": 1,
-	"id": "smartclicks",
-	"version": "${version}",
-	"name": "Smart Clicks",
-	"description": "This is an expert experimental Smart python+java powered auto clicker, Built for *BedWars*!",
-	"authors": [
-		"Mr Rahnama!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/SilentCoding2026/Minecraft-Smart-Autoclicker"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/smartclicks/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"com.ra.SmartClicksMod"
-		],
-		"client": [
-			"com.ra.client.SmartClicksModClient"
-		]
-	},
-	"mixins": [
-		"smartclicks.mixins.json",
-		{
-			"config": "smartclicks.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=0.19.3",
-		"minecraft": "~1.21.11",
-		"java": ">=21"
-	}
+    "schemaVersion": 1,
+    "id": "smartclicks",
+    "version": "${version}",
+    "name": "Smart Clicks",
+    "description": "Smart auto-clicker for BedWars & PvP",
+    "authors": ["Mr Rahnama!"],
+    "contact": {
+        "homepage": "https://fabricmc.net/",
+        "sources": "https://github.com/SilentCoding2026/Minecraft-Smart-Autoclicker"
+    },
+    "license": "CC0-1.0",
+    "icon": "assets/smartclicks/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": ["com.ra.SmartClicksMod"],
+        "client": ["com.ra.client.SmartClicksModClient"]
+    },
+    "mixins": [
+        "smartclicks.mixins.json",
+        {
+            "config": "smartclicks.client.mixins.json",
+            "environment": "client"
+        }
+    ],
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": "~1.21.11",
+        "java": ">=21"
+    }
 }
