@@ -2,7 +2,7 @@ package com.ra.client.mixin;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier; // تغییر یافته در 1.21.11
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -39,15 +39,11 @@ public class SmartClicksClientMixin {
     private static boolean lastGround = false;
     private static boolean lastDead = false;
 
-    // ============================================================
-    //  MAIN TICK – Target lock detection + periodic state sending
-    // ============================================================
     @Inject(at = @At("HEAD"), method = "tick")
     private void smartclicks$tick(CallbackInfo ci) {
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.player == null || mc.level == null) return;
 
-        // --- Target detection ---
         HitResult hit = mc.hitResult;
         Entity target = null;
         boolean isLookingAtValidEnemy = false;
@@ -65,7 +61,6 @@ public class SmartClicksClientMixin {
 
         int targetId = target == null ? -1 : target.getId();
 
-        // --- Target lock state changes ---
         if (isLookingAtValidEnemy != wasLooking) {
             if (isLookingAtValidEnemy) {
                 send("http://127.0.0.1:4321/target_locked");
@@ -80,7 +75,6 @@ public class SmartClicksClientMixin {
         wasLooking = isLookingAtValidEnemy;
         lastTargetId = targetId;
 
-        // --- Periodic state update (every 300ms) ---
         long now = System.currentTimeMillis();
         if (now - lastStateSent >= 300L) {
             lastStateSent = now;
@@ -88,9 +82,6 @@ public class SmartClicksClientMixin {
         }
     }
 
-    // ============================================================
-    //  ATTACK DETECTION – Send /event?name=hit with distance
-    // ============================================================
     @Inject(method = "startAttack", at = @At("RETURN"))
     private void smartclicks$onAttack(CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
@@ -107,9 +98,6 @@ public class SmartClicksClientMixin {
                 "http://127.0.0.1:4321/event?name=hit&distance=%.2f", distance));
     }
 
-    // ============================================================
-    //  STATE SENDER – Sends full context to Python
-    // ============================================================
     private void sendState(Minecraft mc, Entity target) {
         boolean gui = mc.screen != null;
         boolean dead = !mc.player.isAlive();
@@ -119,7 +107,6 @@ public class SmartClicksClientMixin {
         float distance = target != null ? mc.player.distanceTo(target) : 0f;
         float cooldown = mc.player.getAttackStrengthScale(0.5F);
 
-        // Only send if something changed or every 1 second
         boolean changed = gui != lastGui || dead != lastDead ||
                 sprint != lastSprint || ground != lastGround ||
                 !item.equals(lastItem);
@@ -139,53 +126,41 @@ public class SmartClicksClientMixin {
                 gui, dead, item, sprint, ground, distance, cooldown));
     }
 
-    // ============================================================
-    //  SAFE ITEM DETECTION – Uses Registry Name (never crashes)
-    // ============================================================
+    // سیستم تشخیص آیتم 100% ضد کرش برای نسخه 1.21.11
     private String getItemCategory(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return "empty";
         
         try {
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            // در 1.21.11 کلاس ResourceLocation به Identifier تغییر نام یافته است
+            Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             if (id == null) return "other";
             
             String name = id.getPath().toLowerCase();
             
-            // Sword detection
             if (name.contains("sword") || name.contains("katana")) return "sword";
-            
-            // Axe detection
             if (name.contains("_axe") && !name.contains("pickaxe")) return "axe";
-            
-            // Pickaxe detection
             if (name.contains("pickaxe")) return "pickaxe";
-            
-            // Bow/Crossbow
             if (name.equals("bow")) return "bow";
             if (name.equals("crossbow")) return "crossbow";
-            
-            // Fishing rod
             if (name.equals("fishing_rod")) return "rod";
-            
-            // Trident
             if (name.equals("trident")) return "trident";
-            
-            // Potions
             if (name.contains("potion")) return "potion";
-            
-            // Blocks
             if (stack.getItem() instanceof net.minecraft.world.item.BlockItem) return "blocks";
-            
-            // Throwable items
             if (name.equals("snowball")) return "snowball";
             if (name.equals("ender_pearl")) return "ender_pearl";
             if (name.equals("egg")) return "egg";
-            
-            // Shield
             if (name.equals("shield")) return "shield";
             
-            // Food
-            if (stack.getItem().getFoodProperties(stack, null) != null) return "food";
+            // تشخیص غذا بدون نیاز به متدهای حذف شده FoodProperties
+            if (name.contains("apple") || name.contains("bread") || name.contains("cooked") || 
+                name.contains("raw") || name.contains("meat") || name.contains("fish") || 
+                name.contains("stew") || name.contains("pie") || name.contains("cookie") || 
+                name.contains("berry") || name.contains("carrot") || name.contains("potato") || 
+                name.contains("kelp") || name.contains("melon") || name.contains("mushroom") ||
+                name.contains("pumpkin") || name.contains("mutton") || name.contains("chicken") ||
+                name.contains("pork") || name.contains("beef") || name.contains("rabbit")) {
+                return "food";
+            }
             
             return "other";
         } catch (Exception e) {
@@ -193,9 +168,6 @@ public class SmartClicksClientMixin {
         }
     }
 
-    // ============================================================
-    //  HTTP HELPER
-    // ============================================================
     private static void send(String urlString) {
         HTTP.submit(() -> {
             try {
