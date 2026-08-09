@@ -1,14 +1,11 @@
 {
-  "required": true,
-  "package": "com.ra.client.mixin",
-  "refmap": "smartclicks.refmap.json",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "SmartClicksClientMixin",
-    "SmartClicksGameModeMixin",
-    "SmartClicksLivingEntityMixin"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+    "required": true,
+    "package": "com.ra.client.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "client": [
+        "SmartClicksClientMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
 }
