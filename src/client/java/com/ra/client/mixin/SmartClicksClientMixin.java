@@ -1,10 +1,12 @@
 package com.ra.client.mixin;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.*;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,25 +33,31 @@ public class SmartClicksClientMixin {
     private static boolean wasLooking = false;
     private static int lastTargetId = -1;
     private static long lastStateSent = 0L;
+    private static String lastItem = "";
+    private static boolean lastGui = false;
+    private static boolean lastSprint = false;
+    private static boolean lastGround = false;
+    private static boolean lastDead = false;
 
     // ============================================================
-    //  TARGET DETECTION - every tick
+    //  MAIN TICK – Target lock detection + periodic state sending
     // ============================================================
     @Inject(at = @At("HEAD"), method = "tick")
     private void smartclicks$tick(CallbackInfo ci) {
         Minecraft mc = (Minecraft) (Object) this;
         if (mc.player == null || mc.level == null) return;
 
+        // --- Target detection ---
         HitResult hit = mc.hitResult;
         Entity target = null;
-        boolean isLookingAtEnemy = false;
+        boolean isLookingAtValidEnemy = false;
 
         if (hit != null && hit.getType() == HitResult.Type.ENTITY) {
             Entity entity = ((EntityHitResult) hit).getEntity();
             if (entity instanceof Player && entity != mc.player) {
                 LivingEntity living = (LivingEntity) entity;
                 if (living.isAlive()) {
-                    isLookingAtEnemy = true;
+                    isLookingAtValidEnemy = true;
                     target = entity;
                 }
             }
@@ -57,21 +65,22 @@ public class SmartClicksClientMixin {
 
         int targetId = target == null ? -1 : target.getId();
 
-        if (isLookingAtEnemy != wasLooking) {
-            if (isLookingAtEnemy) {
+        // --- Target lock state changes ---
+        if (isLookingAtValidEnemy != wasLooking) {
+            if (isLookingAtValidEnemy) {
                 send("http://127.0.0.1:4321/target_locked");
             } else {
                 send("http://127.0.0.1:4321/target_unlocked");
             }
-        } else if (isLookingAtEnemy && targetId != lastTargetId) {
+        } else if (isLookingAtValidEnemy && targetId != lastTargetId) {
             send("http://127.0.0.1:4321/target_unlocked");
             send("http://127.0.0.1:4321/target_locked");
         }
 
-        wasLooking = isLookingAtEnemy;
+        wasLooking = isLookingAtValidEnemy;
         lastTargetId = targetId;
 
-        // Send state every 300ms
+        // --- Periodic state update (every 300ms) ---
         long now = System.currentTimeMillis();
         if (now - lastStateSent >= 300L) {
             lastStateSent = now;
@@ -80,7 +89,7 @@ public class SmartClicksClientMixin {
     }
 
     // ============================================================
-    //  HIT DETECTION
+    //  ATTACK DETECTION – Send /event?name=hit with distance
     // ============================================================
     @Inject(method = "startAttack", at = @At("RETURN"))
     private void smartclicks$onAttack(CallbackInfoReturnable<Boolean> cir) {
@@ -99,38 +108,89 @@ public class SmartClicksClientMixin {
     }
 
     // ============================================================
-    //  STATE SENDER
+    //  STATE SENDER – Sends full context to Python
     // ============================================================
     private void sendState(Minecraft mc, Entity target) {
         boolean gui = mc.screen != null;
         boolean dead = !mc.player.isAlive();
         boolean sprint = mc.player.isSprinting();
         boolean ground = mc.player.onGround();
-        String item = getItemName(mc.player.getMainHandItem());
+        String item = getItemCategory(mc.player.getMainHandItem());
         float distance = target != null ? mc.player.distanceTo(target) : 0f;
+        float cooldown = mc.player.getAttackStrengthScale(0.5F);
+
+        // Only send if something changed or every 1 second
+        boolean changed = gui != lastGui || dead != lastDead ||
+                sprint != lastSprint || ground != lastGround ||
+                !item.equals(lastItem);
+
+        if (!changed && System.currentTimeMillis() - lastStateSent < 700L) {
+            return;
+        }
+
+        lastGui = gui;
+        lastDead = dead;
+        lastSprint = sprint;
+        lastGround = ground;
+        lastItem = item;
 
         send(String.format(Locale.ROOT,
-                "http://127.0.0.1:4321/state?gui=%b&dead=%b&item=%s&sprinting=%b&ground=%b&distance=%.2f",
-                gui, dead, item, sprint, ground, distance));
+                "http://127.0.0.1:4321/state?gui=%b&dead=%b&item=%s&sprinting=%b&ground=%b&distance=%.2f&cooldown=%.2f",
+                gui, dead, item, sprint, ground, distance, cooldown));
     }
 
-    private String getItemName(ItemStack stack) {
+    // ============================================================
+    //  SAFE ITEM DETECTION – Uses Registry Name (never crashes)
+    // ============================================================
+    private String getItemCategory(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return "empty";
-        Item item = stack.getItem();
-        if (item instanceof SwordItem) return "sword";
-        if (item instanceof AxeItem) return "axe";
-        if (item instanceof PickaxeItem) return "pickaxe";
-        if (item instanceof BowItem) return "bow";
-        if (item instanceof CrossbowItem) return "crossbow";
-        if (item instanceof FishingRodItem) return "rod";
-        if (item instanceof TridentItem) return "trident";
-        if (item instanceof PotionItem) return "potion";
-        if (item instanceof BlockItem) return "blocks";
-        if (item instanceof SnowballItem) return "snowball";
-        if (item instanceof EnderpearlItem) return "ender_pearl";
-        if (item instanceof EggItem) return "egg";
-        if (item instanceof ShieldItem) return "shield";
-        return "other";
+        
+        try {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            if (id == null) return "other";
+            
+            String name = id.getPath().toLowerCase();
+            
+            // Sword detection
+            if (name.contains("sword") || name.contains("katana")) return "sword";
+            
+            // Axe detection
+            if (name.contains("_axe") && !name.contains("pickaxe")) return "axe";
+            
+            // Pickaxe detection
+            if (name.contains("pickaxe")) return "pickaxe";
+            
+            // Bow/Crossbow
+            if (name.equals("bow")) return "bow";
+            if (name.equals("crossbow")) return "crossbow";
+            
+            // Fishing rod
+            if (name.equals("fishing_rod")) return "rod";
+            
+            // Trident
+            if (name.equals("trident")) return "trident";
+            
+            // Potions
+            if (name.contains("potion")) return "potion";
+            
+            // Blocks
+            if (stack.getItem() instanceof net.minecraft.world.item.BlockItem) return "blocks";
+            
+            // Throwable items
+            if (name.equals("snowball")) return "snowball";
+            if (name.equals("ender_pearl")) return "ender_pearl";
+            if (name.equals("egg")) return "egg";
+            
+            // Shield
+            if (name.equals("shield")) return "shield";
+            
+            // Food
+            if (stack.getItem().getFoodProperties(stack, null) != null) return "food";
+            
+            return "other";
+        } catch (Exception e) {
+            return "other";
+        }
     }
 
     // ============================================================
